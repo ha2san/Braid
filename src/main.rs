@@ -11,6 +11,7 @@ use crate::blockgen::{INIT_SIZE, N};
 mod blockgen;
 mod encoders;
 mod decoders;
+mod tar;
 
 const RUNS: usize = 10;
 const ITER: usize = 32;
@@ -106,11 +107,11 @@ fn main() -> io::Result<()>{
                 print_usage(Command::Tar);
                 exit(1)
             }
-            let _output_file = &args[2];
-            let _input_files = &args[3..];
+            let output_file = &args[2];
+            let input_files = &args[3..];
             // TODO: Implement tar command with multiple file inputs
             println!("tar command not implemented");
-            todo!("tar")
+            tar::tar(output_file, input_files)
         },
         "untar" => {
             if args.len() != 4 {
