@@ -1,0 +1,7 @@
+Hash : siphasher
+Total amount of steps : 760838
+Group size : 0.0625MiB
+Warmup done.
+# Average runtime per block = 3.76ms
+# Average read speed = 16.63MB/s
+

@@ -1,0 +1,112 @@
+Hash : blake2
+Total amount of steps : 777959
+Group size : 0.5MiB
+Warmup done.
+# Average runtime per block = 67.29ms
+# Average read speed = 7.43MB/s
+
+Hash : Groestl
+Total amount of steps : 777959
+Group size : 0.5MiB
+Warmup done.
+# Average runtime per block = 1846.76ms
+# Average read speed = 0.34MB/s
+
+Hash : sha2
+Total amount of steps : 777959
+Group size : 0.5MiB
+Warmup done.
+# Average runtime per block = 406.96ms
+# Average read speed = 1.45MB/s
+
+Hash : sha3
+Total amount of steps : 777959
+Group size : 0.5MiB
+Warmup done.
+# Average runtime per block = 373.33ms
+# Average read speed = 1.34MB/s
+
+Hash : shabal
+Total amount of steps : 777959
+Group size : 0.5MiB
+Warmup done.
+# Average runtime per block = 120.77ms
+# Average read speed = 4.14MB/s
+
+Hash : Whirlpool
+Total amount of steps : 777959
+Group size : 0.5MiB
+Warmup done.
+# Average runtime per block = 549.28ms
+# Average read speed = 0.92MB/s
+
+Hash : sm3
+Total amount of steps : 777959
+Group size : 0.25MiB
+Warmup done.
+# Average runtime per block = 117.99ms
+# Average read speed = 2.13MB/s
+
+Hash : ripemd
+Total amount of steps : 777959
+Group size : 0.3125MiB
+Warmup done.
+# Average runtime per block = 100.06ms
+# Average read speed = 3.12MB/s
+
+Hash : Tiger
+Total amount of steps : 777959
+Group size : 0.1875MiB
+Warmup done.
+# Average runtime per block = 44.12ms
+# Average read speed = 4.27MB/s
+
+Hash : blake3
+Total amount of steps : 777959
+Group size : 0.25MiB
+Warmup done.
+# Average runtime per block = 29.63ms
+# Average read speed = 8.44MB/s
+
+Hash : crcfast
+Total amount of steps : 777959
+Group size : 0.03125MiB
+Warmup done.
+# Average runtime per block = 13.07ms
+# Average read speed = 2.39MB/s
+
+Hash : siphasher
+Total amount of steps : 2029664
+Group size : 0.0625MiB
+Warmup done.
+# Average runtime per block = 10.07ms
+# Average read speed = 6.20MB/s
+
+Hash : siphasher
+Total amount of steps : 2029664
+Group size : 0.0625MiB
+Warmup done.
+# Average runtime per block = 21.13ms
+# Average read speed = 2.96MB/s
+
+Hash : haraka256
+Total amount of steps : 1267760
+Group size : 0.25MiB
+Warmup done.
+# Average runtime per block = 43.46ms
+# Average read speed = 5.75MB/s
+
+Hash : siphasher
+Total amount of steps : 743106
+Group size : 0.0625MiB
+Warmup done.
+# Average runtime per block = 3.71ms
+# Average read speed = 16.86MB/s
+
+Hash : siphasher
+Total amount of steps : 760838
+Group size : 0.0625MiB
+Warmup done.
+# Average runtime per block = 3.76ms
+# Average read speed = 16.63MB/s
+
