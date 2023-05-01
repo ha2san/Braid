@@ -34,32 +34,40 @@ fn print_usage(command: Command) {
  //           println!("\tbenchmark it's raw performances at computing storage advices");
  //       },
         Command::Encode => {
-            println!("encode <input file> <output file>");
+            println!("encode [input file] [output_file]");
             println!("\tencode the input file using the braid");
         },
         Command::Decode => {
-            println!("decode <input file> <output file>");
+            println!("decode [input_file] [output_file]");
             println!("\tdecode the input file using the braid");
         },
         Command::Tar => {
-            println!("tar <input file> <output file>");
+            println!("tar [output_file] [input_file]");
             println!("\tencode the input file using the braid and tar it");
         },
         Command::Untar => {
-            println!("untar <input file>");
+            println!("untar [input_file]");
             println!("\tdecode the input file using the braid and untar it");
+            println!("untar [input_file] [output_file]...");
+            println!("\tdecode specific files in the input file using the braid and untar it");
+            println!("untar ls [input_file]");
+            println!("\tlist the content of the tar file");
         },
         Command::ALL => {
             println!("speedtest");
             println!("\tbenchmark it's raw performances at computing storage advices");
-            println!("encode <input file> <output file>");
+            println!("encode [input_file] [output_file]");
             println!("\tencode the input file using the braid");
-            println!("decode <input file> <output file>");
+            println!("decode [input_file] [output_file]");
             println!("\tdecode the input file using the braid");
-            println!("tar <input file> <output file>");
+            println!("tar [input_file] [output_file]");
             println!("\tencode the input file using the braid and tar it");
-            println!("untar <input file>");
+            println!("untar [input_file]");
             println!("\tdecode the input file using the braid and untar it");
+            println!("untar [input_file] [output_file]...");
+            println!("\tdecode specific files in the input file using the braid and untar it");
+            println!("untar ls [input_file]");
+            println!("\tlist the content of the tar file");
         },
     }
 }
@@ -107,19 +115,41 @@ fn main() -> io::Result<()>{
                 print_usage(Command::Tar);
                 exit(1)
             }
+             
             let output_file = &args[2];
             let input_files = &args[3..];
             tar::tar(output_file, input_files)
         },
         "untar" => {
-            if args.len() != 3 {
-                eprintln!("Not enough arguments");
-                print_usage(Command::Untar);
-                exit(1)
+            match args[2].as_str() {
+                "ls" => {
+                    if args.len() != 4 {
+                        eprintln!("Not enough arguments");
+                        print_usage(Command::Untar);
+                        exit(1)
+                    }
+                    let input_file = &args[3];
+                    tar::list(input_file);
+                    exit(0)
+                },
+                _ => {
+                    match args.len() {
+                        3 => {
+                            let input_file = &args[2];
+                            tar::untar(input_file);
+                            exit(0)
+                        },
+                        _ => {
+                            let input_file = &args[2];
+                            let output_file = &args[3..];
+                            for file in output_file {
+                                tar::untar_file(input_file, file);
+                            } 
+                            exit(0);
+                        }
+                    }
+                } 
             }
-            let input_file = &args[2];
-            tar::untar(input_file);
-            exit(0)
         },
 
         _ => {

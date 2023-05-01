@@ -341,3 +341,65 @@ fn decode(header:&FileHeader,mut input_file: &File, mut output_file: &File ) {
         }
         string
     }
+
+    pub fn list(input_file: &str) {
+        let mut ffile = match File::open(input_file) {
+            Ok(f) => f,
+            Err(e) => panic!("Error opening file : {}", e),
+        };
+
+        let first_header: FirstHeader;
+        let mut first_header_bytes = [0u8; GROUP_BYTE_SIZE];
+        match ffile.read(&mut first_header_bytes) {
+            Ok(_) => {},
+            Err(e) => panic!("Error reading file : {}", e),
+        }
+        first_header = unsafe { std::mem::transmute::<[u8;GROUP_BYTE_SIZE], FirstHeader>(first_header_bytes) };
+
+        let file_count = first_header.number_of_files as usize;
+        for i in 0..file_count {
+            //print file name
+            println!("{}",get_string_from_slice(&first_header.name[i]));
+        }
+        
+    }
+
+    // pas du tout optimal, à modifier si possible
+    pub fn untar_file(input_file: &str, output_file: &str) {
+        let mut ffile = match File::open(input_file) {
+            Ok(f) => f,
+            Err(e) => panic!("Error opening file : {}", e),
+        };
+
+        let first_header: FirstHeader;
+        let mut first_header_bytes = [0u8; GROUP_BYTE_SIZE];
+        match ffile.read(&mut first_header_bytes) {
+            Ok(_) => {},
+            Err(e) => panic!("Error reading file : {}", e),
+        }
+        first_header = unsafe { std::mem::transmute::<[u8;GROUP_BYTE_SIZE], FirstHeader>(first_header_bytes) };
+
+        let file_count = first_header.number_of_files as usize;
+        let mut headers = Vec::with_capacity(file_count);
+        for _ in 0..file_count {
+            let mut header_bytes = [0u8; GROUP_BYTE_SIZE];
+            match ffile.read(&mut header_bytes) {
+                Ok(_) => {},
+                Err(e) => panic!("Error reading file : {}", e),
+            }
+            let header = unsafe { std::mem::transmute::<[u8;GROUP_BYTE_SIZE], FileHeader>(header_bytes) };
+            headers.push(header);
+        }
+
+        for i in 0..file_count {
+            let header = &headers[i];
+            let name_str = get_string_from_slice(&header.name);
+            if name_str == output_file {
+                let single_file = match File::create(name_str) {
+                    Ok(f) => f,
+                    Err(e) => panic!("Error creating file : {}", e),
+                };
+                decode(&header,&ffile,&single_file);
+            }
+        }
+    } 
