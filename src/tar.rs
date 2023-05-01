@@ -14,23 +14,22 @@ use aes::cipher::{
 
 const NAME_SIZE: usize = 128;
 //const MAX_NB_FILES: usize = 100;
-//const MAX_NB_BLOCKS: usize = 100;
+const MAX_NB_BLOCKS: usize = 100;
 
-//type Hash = [u8;16];
+type Hash = [u8;32];
 type Aes128CbcD = cbc::Decryptor<Aes128>;
 type Aes128CbcE = cbc::Encryptor<Aes128>;
 
 use crate::blockgen::{INIT_SIZE, InitGroup, GROUP_BYTE_SIZE, block_gen, FRAGMENT_BYTES};
 
-//const PADDING_HEADER: usize = GROUP_BYTE_SIZE - NAME_SIZE - 8 - MAX_NB_BLOCKS * 2 * 16;
-const PADDING_HEADER: usize = GROUP_BYTE_SIZE - NAME_SIZE - 8;
+const PADDING_HEADER: usize = GROUP_BYTE_SIZE - NAME_SIZE - 8 - MAX_NB_BLOCKS * 32;
+//const PADDING_HEADER: usize = GROUP_BYTE_SIZE - NAME_SIZE - 8;
 
 #[derive(Copy,Clone)]
 struct FileHeader {
     name: [u8;NAME_SIZE],
     size: u64,
-    //key: [Hash;MAX_NB_BLOCKS],
-    //iv: [Hash;MAX_NB_BLOCKS],
+    hash: [Hash;MAX_NB_BLOCKS],
     padding: [u8;PADDING_HEADER],
 }
 
@@ -60,32 +59,29 @@ fn get_header_from_file(filename:&str) -> Option<FileHeader> {
     }
 
     header.size = file_size;
-    //let block_count = ((header.size - 1) / GROUP_BYTE_SIZE as u64) + 1;
-    //let ffile = match File::open(filename) {
-    //    Ok(f) => f,
-    //    Err(_) => return None,
-    //};
+    let block_count = ((header.size - 1) / GROUP_BYTE_SIZE as u64) + 1;
+    let mut ffile = match File::open(filename) {
+        Ok(f) => f,
+        Err(_) => return None,
+    };
 
 
-    //for i in 0..block_count {
-    //    let mut input = vec![0u8; GROUP_BYTE_SIZE];
-    //    match ffile.read(&mut input) {
-    //        Ok(_) => {},
-    //        Err(_) => return None,
-    //    }
+    for i in 0..block_count {
+        let mut input = vec![0u8; GROUP_BYTE_SIZE];
+        match ffile.read(&mut input) {
+            Ok(_) => {},
+            Err(_) => return None,
+        }
 
-    //    let mut keys: Vec<u8> = Vec::with_capacity(16);
-    //    let mut ivs: Vec<u8> = Vec::with_capacity(16);
-    //    let input_hash = blake3::hash(&input);
-    //    let input_hash = input_hash.as_bytes();
-    //    let key_bytes = GenericArray::from_slice(&input_hash[0..16]);
-    //    let iv_bytes = GenericArray::from_slice(&input_hash[16..32]);
+        let input_hash = blake3::hash(&input);
+        let input_hash = input_hash.as_bytes();
+        //let key_bytes = GenericArray::from_slice(&input_hash[0..16]);
+        //let iv_bytes = GenericArray::from_slice(&input_hash[16..32]);
 
-    //    for j in 0..16 {
-    //        header.key[i as usize][j] = (key_bytes[j]);
-    //        header.iv[i as usize][j] = (iv_bytes[j])
-    //    }
-    //}
+        for j in 0..32 {
+            header.hash[i as usize][j] = input_hash[j];
+        }
+    }
 
     Some(header)
 }
@@ -127,21 +123,22 @@ fn encode(header:&FileHeader,mut input_file:&File, mut output_file:&File){
         let group = block_gen(inits,"");
 
         // Compute input hash
-        let mut output: Vec<u8> = Vec::with_capacity(32 + GROUP_BYTE_SIZE);
-        let input_hash = blake3::hash(&input);
-        let input_hash = input_hash.as_bytes();
-        let key_bytes = GenericArray::from_slice(&input_hash[0..16]);
-        let iv_bytes = GenericArray::from_slice(&input_hash[16..32]);
+        //let mut output: Vec<u8> = Vec::with_capacity(32 + GROUP_BYTE_SIZE);
+        let mut output: Vec<u8> = Vec::with_capacity(GROUP_BYTE_SIZE);
+        //let input_hash = blake3::hash(&input);
+        //let input_hash = input_hash.as_bytes();
+        let key_bytes = GenericArray::from_slice(&header.hash[i as usize][0..16]);
+        let iv_bytes = GenericArray::from_slice(&header.hash[i as usize][16..32]);
 
-        for i in 0..16 {
-            output.push(key_bytes[i]);
-        }
-        for i in 0..16 {
-            output.push(iv_bytes[i]);
-        }
+        //for i in 0..16 {
+        //    output.push(key_bytes[i]);
+        //}
+        //for i in 0..16 {
+        //    output.push(iv_bytes[i]);
+        //}
 
         // TODO : Encrypt input with AES using the hash.
-        let mut cipher = Aes128CbcE::new(&key_bytes, &iv_bytes);
+        let mut cipher = Aes128CbcE::new(key_bytes, iv_bytes);
         for i in 0..(GROUP_BYTE_SIZE / 16) {
             let from = i*16;
             let to = from + 16;
@@ -160,7 +157,7 @@ fn encode(header:&FileHeader,mut input_file:&File, mut output_file:&File){
 
 
         println!("output length = {}", output.len());
-        assert!(output.len() == GROUP_BYTE_SIZE + 32);
+        assert!(output.len() == GROUP_BYTE_SIZE);
         match output_file.write_all(&output){
             Ok(_) => {},
             Err(_) => return,
@@ -175,7 +172,8 @@ fn decode(header:&FileHeader,mut input_file: &File, mut output_file: &File ) {
 
     // Decode blocks
     for i in 0..block_count {
-        let mut input = vec![0u8; GROUP_BYTE_SIZE + 32];
+        //let mut input = vec![0u8; GROUP_BYTE_SIZE + 32];
+        let mut input = vec![0u8; GROUP_BYTE_SIZE];
         match input_file.read(&mut input) {
             Ok(_) => {},
             Err(_) => return,
@@ -207,7 +205,8 @@ fn decode(header:&FileHeader,mut input_file: &File, mut output_file: &File ) {
         let mut group_output: Vec<u8> = Vec::with_capacity(GROUP_BYTE_SIZE);
         //for i in 0..(N*GROUP_SIZE) {
         for i in 0..(GROUP_BYTE_SIZE) {
-            let mut data_bytes = [input[32+i]];
+            //let mut data_bytes = [input[32+i]];
+            let mut data_bytes = [input[i]];
             //let data = u8::from_le_bytes(data_bytes);
             //group_output[i] = (data ^ group[i / GROUP_SIZE][i % GROUP_SIZE]) as u8;
 
@@ -218,8 +217,8 @@ fn decode(header:&FileHeader,mut input_file: &File, mut output_file: &File ) {
         }
 
         // Extract AES key and IV from input
-        let key_bytes = GenericArray::from_slice(&input[0..16]);
-        let iv_bytes = GenericArray::from_slice(&input[16..32]);
+        let key_bytes = GenericArray::from_slice(&header.hash[i as usize][0..16]);
+        let iv_bytes = GenericArray::from_slice(&header.hash[i as usize][16..32]);
 
         // TODO: Decrypt input with AES using the key and IV.
         let mut cipher = Aes128CbcD::new(&key_bytes, &iv_bytes);
