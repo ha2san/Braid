@@ -46,7 +46,7 @@ fn print_usage(command: Command) {
             println!("\tencode the input file using the braid and tar it");
         },
         Command::Untar => {
-            println!("untar <input file> <output file>");
+            println!("untar <input file>");
             println!("\tdecode the input file using the braid and untar it");
         },
         Command::ALL => {
@@ -58,7 +58,7 @@ fn print_usage(command: Command) {
             println!("\tdecode the input file using the braid");
             println!("tar <input file> <output file>");
             println!("\tencode the input file using the braid and tar it");
-            println!("untar <input file> <output file>");
+            println!("untar <input file>");
             println!("\tdecode the input file using the braid and untar it");
         },
     }
@@ -109,20 +109,19 @@ fn main() -> io::Result<()>{
             }
             let output_file = &args[2];
             let input_files = &args[3..];
-            // TODO: Implement tar command with multiple file inputs
-            println!("tar command not implemented");
             tar::tar(output_file, input_files)
         },
         "untar" => {
-            if args.len() != 4 {
+            if args.len() != 3 {
                 eprintln!("Not enough arguments");
                 print_usage(Command::Untar);
                 exit(1)
             }
-            let _input_file = &args[2];
-            let _output_dir = &args[3];
-            todo!("untar")
+            let input_file = &args[2];
+            tar::untar(input_file);
+            exit(0)
         },
+
         _ => {
             eprintln!("Not enough arguments");
             print_usage(Command::ALL);
