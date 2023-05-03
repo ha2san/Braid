@@ -5,21 +5,21 @@ use std::vec::Vec;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
 
-
 pub const E: usize = 13;
 pub const D: usize = E + 1; // Amount of dependencies of each fragment
 pub const N: usize = 1 << E as usize; // Amount of fragment per block
 const INDEX_MASK: usize = N - 1;
 
-pub const ABSOLUTE_SPEEDUP_UPPERBOUND: usize = E*(1 << (E - 1))*E + (N/2) - 1;
+pub const ABSOLUTE_SPEEDUP_UPPERBOUND: usize = E * (1 << (E - 1)) * E + (N / 2) - 1;
 const MIN_ADVERSARY_OPERATIONS: usize = 8000000; // 20GHz (adversary max speed) * 0.2ms (disk latency) * 2 (security margin)
-const OPERATIONS_PER_STEP: usize = 124;  // siphash is at least  sequential primitive operations per 32 bytes of input.
-const MIN_ADVERSARY_STEPS: usize = (MIN_ADVERSARY_OPERATIONS + (OPERATIONS_PER_STEP - 1)) / OPERATIONS_PER_STEP;
+const OPERATIONS_PER_STEP: usize = 124; // siphash is at least  sequential primitive operations per 32 bytes of input.
+const MIN_ADVERSARY_STEPS: usize =
+    (MIN_ADVERSARY_OPERATIONS + (OPERATIONS_PER_STEP - 1)) / OPERATIONS_PER_STEP;
 const STEPS_LOWERBOUND: usize = MIN_ADVERSARY_STEPS + ABSOLUTE_SPEEDUP_UPPERBOUND;
 pub const SIZE: usize = (STEPS_LOWERBOUND + (E - 1)) / E;
 pub const STEPS: usize = SIZE * E;
 
-pub const FRAGMENT_BYTES: usize = 8; 
+pub const FRAGMENT_BYTES: usize = 8;
 pub type Fragment = [u8; FRAGMENT_BYTES];
 pub const BLOCK_BYTE_SIZE: usize = N * FRAGMENT_BYTES;
 
@@ -53,13 +53,12 @@ fn block_gen_inner(inits: InitGroup, _hash: &str) -> BlockGroup {
     for i in 0..N {
         block[i] = inits[i & INIT_MASK];
     }
-    
+
     let start = N - (SIZE % N);
     let mut hasher = DefaultHasher::new();
 
     for i in 0..SIZE {
         let index = (i + start) % N;
-
 
         for j in 0..D {
             let jump = 1 << j;
@@ -80,8 +79,6 @@ fn block_gen_inner(inits: InitGroup, _hash: &str) -> BlockGroup {
         block[index][5] = (hash >> 16) as u8;
         block[index][6] = (hash >> 8) as u8;
         block[index][7] = hash as u8;
-
-
     }
     return block;
 }
@@ -97,10 +94,10 @@ fn select_hasher(s: &str) -> Box<dyn DynDigest> {
         "ripemd"=> Box::new(ripemd::Ripemd320::default()),
         "sha2"=> Box::new(sha2::Sha512::default()),
         "sha3"=>  Box::new(sha3::Sha3_512::default()),
-        "shabal"=> Box::new(shabal::Shabal512::default()), 
-        "sm3"=> Box::new(sm3::Sm3::default()), 
+        "shabal"=> Box::new(shabal::Shabal512::default()),
+        "sm3"=> Box::new(sm3::Sm3::default()),
         "Tiger"=> Box::new(tiger::Tiger::default()),
-        "Whirlpool"=> Box::new(whirlpool::Whirlpool::default()), 
+        "Whirlpool"=> Box::new(whirlpool::Whirlpool::default()),
         _ => unimplemented!("unsupported digest: {}", s),
     }
 }

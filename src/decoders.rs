@@ -1,18 +1,15 @@
-use std::mem::transmute;
-use std::time::Instant;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::io::Read;
+use std::mem::transmute;
+use std::time::Instant;
 
-use blake3;
+use aes::cipher::{generic_array::GenericArray, BlockDecryptMut, KeyIvInit};
 use aes::Aes128;
-use aes::cipher::{
-    BlockDecryptMut, KeyIvInit,
-    generic_array::GenericArray,
-};
+use blake3;
 
-use crate::blockgen::{GROUP_BYTE_SIZE,INIT_SIZE, block_gen, FRAGMENT_BYTES, InitGroup};
+use crate::blockgen::{block_gen, InitGroup, FRAGMENT_BYTES, GROUP_BYTE_SIZE, INIT_SIZE};
 
 type Aes128Cbc = cbc::Decryptor<Aes128>;
 
@@ -36,9 +33,8 @@ pub fn decode(mut input_file: File, mut output_file: File) -> io::Result<()> {
 
         let mut inits: InitGroup = [[0; FRAGMENT_BYTES]; INIT_SIZE];
         for g in 0..FRAGMENT_BYTES {
-            let pos_bytes: [u8; 8] = unsafe {
-                transmute(((i * FRAGMENT_BYTES as u64) + g as u64).to_le())
-            };
+            let pos_bytes: [u8; 8] =
+                unsafe { transmute(((i * FRAGMENT_BYTES as u64) + g as u64).to_le()) };
             let mut hasher = blake3::Hasher::new();
             hasher.update(&pos_bytes);
             hasher.update(pub_hash.as_bytes());
@@ -52,15 +48,14 @@ pub fn decode(mut input_file: File, mut output_file: File) -> io::Result<()> {
         }
 
         // Compute block_gen
-        let group = block_gen(inits,"");
-
+        let group = block_gen(inits, "");
 
         // Extract group output from input
         //let mut group_output = vec![0u8; N*GROUP_SIZE];
         let mut group_output: Vec<u8> = Vec::with_capacity(GROUP_BYTE_SIZE);
         //for i in 0..(N*GROUP_SIZE) {
         for i in 0..(GROUP_BYTE_SIZE) {
-            let mut data_bytes = [input[32+i]];
+            let mut data_bytes = [input[32 + i]];
             //let data = u8::from_le_bytes(data_bytes);
             //group_output[i] = (data ^ group[i / GROUP_SIZE][i % GROUP_SIZE]) as u8;
 
@@ -77,11 +72,10 @@ pub fn decode(mut input_file: File, mut output_file: File) -> io::Result<()> {
         // TODO: Decrypt input with AES using the key and IV.
         let mut cipher = Aes128Cbc::new(&key_bytes, &iv_bytes);
         for i in 0..(GROUP_BYTE_SIZE / 16) {
-            let from = i*16;
+            let from = i * 16;
             let to = from + 16;
             cipher.decrypt_block_mut(GenericArray::from_mut_slice(&mut group_output[from..to]));
         }
-
 
         // Write decoded block to output file
         output_file.write_all(&group_output)?;

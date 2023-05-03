@@ -1,18 +1,15 @@
-use std::mem::transmute;
-use std::time::Instant;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::io::{Read, SeekFrom};
+use std::mem::transmute;
+use std::time::Instant;
 
-use blake3;
+use aes::cipher::{generic_array::GenericArray, BlockEncryptMut, KeyIvInit};
 use aes::Aes128;
-use aes::cipher::{
-    BlockEncryptMut, KeyIvInit,
-    generic_array::GenericArray,
-};
+use blake3;
 
-use crate::blockgen::{INIT_SIZE, InitGroup, GROUP_BYTE_SIZE, block_gen, FRAGMENT_BYTES};
+use crate::blockgen::{block_gen, InitGroup, FRAGMENT_BYTES, GROUP_BYTE_SIZE, INIT_SIZE};
 
 type Aes128Cbc = cbc::Encryptor<Aes128>;
 
@@ -42,9 +39,8 @@ pub fn encode(mut input_file: File, mut output_file: File) -> io::Result<()> {
         // Compute init vectors
         let mut inits: InitGroup = [[0; FRAGMENT_BYTES]; INIT_SIZE];
         for g in 0..FRAGMENT_BYTES {
-            let pos_bytes: [u8; 8] = unsafe {
-                transmute(((i * FRAGMENT_BYTES as u64) + g as u64).to_le())
-            };
+            let pos_bytes: [u8; 8] =
+                unsafe { transmute(((i * FRAGMENT_BYTES as u64) + g as u64).to_le()) };
             let mut hasher = blake3::Hasher::new();
             hasher.update(&pos_bytes);
             hasher.update(pub_hash.as_bytes());
@@ -58,7 +54,7 @@ pub fn encode(mut input_file: File, mut output_file: File) -> io::Result<()> {
         }
 
         // Compute block_gen
-        let group = block_gen(inits,"");
+        let group = block_gen(inits, "");
 
         // Compute input hash
         let mut output: Vec<u8> = Vec::with_capacity(32 + GROUP_BYTE_SIZE);
@@ -77,7 +73,7 @@ pub fn encode(mut input_file: File, mut output_file: File) -> io::Result<()> {
         // TODO : Encrypt input with AES using the hash.
         let mut cipher = Aes128Cbc::new(&key_bytes, &iv_bytes);
         for i in 0..(GROUP_BYTE_SIZE / 16) {
-            let from = i*16;
+            let from = i * 16;
             let to = from + 16;
             cipher.encrypt_block_mut(GenericArray::from_mut_slice(&mut input[from..to]));
         }
@@ -85,12 +81,12 @@ pub fn encode(mut input_file: File, mut output_file: File) -> io::Result<()> {
         // Compute the output : XOR the input with the output of f
         for i in 0..(GROUP_BYTE_SIZE) {
             let mut data_bytes = [0u8; 1]; // ???
-            //for j in 0..1 {
-            //    data_bytes[j] = input[i*8 + j];
-            //}
+                                           //for j in 0..1 {
+                                           //    data_bytes[j] = input[i*8 + j];
+                                           //}
             data_bytes[0] = input[i];
             let mut data = u8::from_le_bytes(data_bytes); // ????
-            //data = data ^ group[i / GROUP_SIZE][i % GROUP_SIZE];
+                                                          //data = data ^ group[i / GROUP_SIZE][i % GROUP_SIZE];
             data = data ^ group[i / FRAGMENT_BYTES][i % FRAGMENT_BYTES];
             data_bytes = unsafe { transmute(data.to_le()) };
             //for j in 0..1 {
@@ -98,7 +94,6 @@ pub fn encode(mut input_file: File, mut output_file: File) -> io::Result<()> {
             //}
             output.push(data_bytes[0]);
         }
-
 
         println!("output length = {}", output.len());
         // Write to file
