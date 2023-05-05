@@ -8,9 +8,6 @@ use std::str;
 
 use aes::cipher::{generic_array::GenericArray, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 
-const NAME_SIZE: usize = 128;
-//const MAX_NB_FILES: usize = 100;
-const MAX_NB_BLOCKS: usize = 2000;
 
 type Hash = [u8; 32];
 type Aes128CbcD = cbc::Decryptor<Aes128>;
@@ -18,24 +15,24 @@ type Aes128CbcE = cbc::Encryptor<Aes128>;
 
 use crate::blockgen::{block_gen, InitGroup, FRAGMENT_BYTES, GROUP_BYTE_SIZE, INIT_SIZE};
 
-const PADDING_HEADER: usize = GROUP_BYTE_SIZE - NAME_SIZE - 8 - MAX_NB_BLOCKS * 32;
-//const PADDING_HEADER: usize = GROUP_BYTE_SIZE - NAME_SIZE - 8;
+const NAME_SIZE: usize = 120;
+const MAX_NB_BLOCKS: usize = (GROUP_BYTE_SIZE - NAME_SIZE - 8)/32; // for now the max size of a
+                                                                   // file is 133 MB
+
+const MAX_NB_FILE: usize = (GROUP_BYTE_SIZE - (128/8))/NAME_SIZE; // max number of file is 546 
 
 #[derive(Copy, Clone)]
 struct FileHeader {
     name: [u8; NAME_SIZE],
     size: u64,
     hash: [Hash; MAX_NB_BLOCKS],
-    padding: [u8; PADDING_HEADER],
 }
 
-const PADDING_FIRST_HEADER: usize = GROUP_BYTE_SIZE - 8 - 100 * NAME_SIZE;
 
 #[repr(packed)]
 struct FirstHeader {
-    number_of_files: u64,
-    name: [[u8; NAME_SIZE]; 100],
-    padding: [u8; PADDING_FIRST_HEADER],
+    number_of_files: u128,
+    name: [[u8; NAME_SIZE]; MAX_NB_FILE],
 }
 
 fn get_header_from_file(filename: &str) -> Option<FileHeader> {
@@ -221,7 +218,7 @@ pub fn tar(output_files: &str, input_files: &[String]) -> Result<(), std::io::Er
         .collect::<Vec<_>>();
 
     let mut first_header: FirstHeader = unsafe { std::mem::zeroed() };
-    first_header.number_of_files = file_count as u64;
+    first_header.number_of_files = file_count as u128;
     for i in 0..file_count {
         first_header.name[i] = headers[i].as_ref().unwrap().name;
     }
